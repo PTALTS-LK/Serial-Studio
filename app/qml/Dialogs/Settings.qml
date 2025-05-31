@@ -160,8 +160,8 @@ Window {
             text: qsTr("Plugin System") + ": "
           } Switch {
             id: _tcpPlugins
-            Layout.leftMargin: -8
-            Layout.alignment: Qt.AlignLeft
+            Layout.rightMargin: -8
+            Layout.alignment: Qt.AlignRight
             checked: Cpp_Plugins_Bridge.enabled
             palette.highlight: Cpp_ThemeManager.colors["switch_highlight"]
             onCheckedChanged: {
@@ -176,8 +176,8 @@ Window {
           Label {
             text: qsTr("Automatic Updates") + ":"
           } Switch {
-            Layout.leftMargin: -8
-            Layout.alignment: Qt.AlignLeft
+            Layout.rightMargin: -8
+            Layout.alignment: Qt.AlignRight
             checked: mainWindow.automaticUpdates
             palette.highlight: Cpp_ThemeManager.colors["switch_highlight"]
             onCheckedChanged: {
@@ -193,8 +193,8 @@ Window {
             text: qsTr("Software Rendering") + ":"
           } Switch {
             id: _softwareRender
-            Layout.leftMargin: -8
-            Layout.alignment: Qt.AlignLeft
+            Layout.rightMargin: -8
+            Layout.alignment: Qt.AlignRight
             palette.highlight: Cpp_ThemeManager.colors["switch_highlight"]
           }
         }
@@ -277,8 +277,8 @@ Window {
           } Switch {
             id: _consoleWidget
 
-            Layout.leftMargin: -8
-            Layout.alignment: Qt.AlignLeft
+            Layout.rightMargin: -8
+            Layout.alignment: Qt.AlignRight
             checked: Cpp_UI_Dashboard.terminalEnabled
             palette.highlight: Cpp_ThemeManager.colors["switch_highlight"]
             onCheckedChanged: {

@@ -21,212 +21,89 @@
 
 #pragma once
 
-#include <QPainter>
 #include <QVector3D>
-#include <QMatrix4x4>
-#include <QQuickPaintedItem>
-
-#include "SerialStudio.h"
+#include <QQuickItem>
+#include <QQuick3DGeometry>
 
 namespace Widgets
 {
 /**
- * @class Plot3D
- * @brief A 3D plotting widget with optional anaglyph (stereo) rendering.
+ * @brief Geometry class for rendering 3D point or line strip data in QtQuick3D.
  *
- * Renders a 3D plot with grid, data, and camera indicator.
- * Supports zoom, camera rotation, and anaglyph mode for red/cyan 3D effect.
- *
- * Exposed properties:
- * - zoom
- * - anaglyphEnabled
- * - cameraAngleX, cameraAngleY, cameraAngleZ
+ * This class wraps low-level geometry buffer updates to allow real-time
+ * rendering of QVector<QVector3D> data from a dashboard or sensor input.
  */
-class Plot3D : public QQuickPaintedItem
+class Plot3DGeometry : public QQuick3DGeometry
+{
+  Q_OBJECT
+  Q_PROPERTY(QVector3D boundsMin READ boundsMin NOTIFY boundsChanged)
+  Q_PROPERTY(QVector3D boundsMax READ boundsMax NOTIFY boundsChanged)
+
+signals:
+  void boundsChanged();
+
+public:
+  Plot3DGeometry(QQuick3DObject *parent = nullptr);
+
+  [[nodiscard]] QVector3D boundsMin() const;
+  [[nodiscard]] QVector3D boundsMax() const;
+
+  void updateData(const QVector<QVector3D> &points, bool useLineStrip);
+
+private:
+  QVector3D m_min;
+  QVector3D m_max;
+};
+
+/**
+ * @brief 3D plotting widget for visualizing real-time QVector3D data.
+ *
+ * This class integrates with the UI::Dashboard backend and updates a
+ * QQuick3DGeometry object based on incoming 3D point data. It supports both
+ * point cloud and line strip rendering modes.
+ */
+class Plot3D : public QQuickItem
 {
   // clang-format off
   Q_OBJECT
-  Q_PROPERTY(bool anaglyphEnabled
-             READ anaglyphEnabled
-             WRITE setAnaglyphEnabled
-             NOTIFY anaglyphEnabledChanged)
-  Q_PROPERTY(bool orbitNavigation
-             READ orbitNavigation
-             WRITE setOrbitNavigation
-             NOTIFY orbitNavigationChanged)
+  Q_PROPERTY(QColor diffuseColor
+             READ diffuseColor
+             NOTIFY colorsChanged)
+  Q_PROPERTY(Plot3DGeometry* geometry
+             READ geometry
+             WRITE setGeometry
+             NOTIFY geometryChanged)
   Q_PROPERTY(bool interpolationEnabled
              READ interpolationEnabled
              WRITE setInterpolationEnabled
              NOTIFY interpolationEnabledChanged)
-  Q_PROPERTY(qreal worldScale
-             READ worldScale
-             WRITE setWorldScale
-             NOTIFY cameraChanged)
-  Q_PROPERTY(qreal cameraAngleX
-             READ cameraAngleX
-             WRITE setCameraAngleX
-             NOTIFY cameraChanged)
-  Q_PROPERTY(qreal cameraAngleY
-             READ cameraAngleY
-             WRITE setCameraAngleY
-             NOTIFY cameraChanged)
-  Q_PROPERTY(qreal cameraAngleZ
-             READ cameraAngleZ
-             WRITE setCameraAngleZ
-             NOTIFY cameraChanged)
-  Q_PROPERTY(qreal cameraOffsetX
-             READ cameraOffsetX
-             WRITE setCameraOffsetX
-             NOTIFY cameraChanged)
-  Q_PROPERTY(qreal cameraOffsetY
-             READ cameraOffsetY
-             WRITE setCameraOffsetY
-             NOTIFY cameraChanged)
-  Q_PROPERTY(qreal cameraOffsetZ
-             READ cameraOffsetZ
-             WRITE setCameraOffsetZ
-             NOTIFY cameraChanged)
-  Q_PROPERTY(qreal idealWorldScale
-             READ idealWorldScale
-             NOTIFY rangeChanged)
-  Q_PROPERTY(float eyeSeparation
-             READ eyeSeparation
-             WRITE setEyeSeparation
-             NOTIFY eyeSeparationChanged)
-  Q_PROPERTY(bool invertEyePositions
-             READ invertEyePositions
-             WRITE setInvertEyePositions
-             NOTIFY invertEyePositionsChanged)
   // clang-format on
 
 signals:
-  void rangeChanged();
-  void cameraChanged();
-  void eyeSeparationChanged();
-  void anaglyphEnabledChanged();
-  void orbitNavigationChanged();
-  void invertEyePositionsChanged();
+  void colorsChanged();
+  void geometryChanged();
   void interpolationEnabledChanged();
 
 public:
   explicit Plot3D(const int index = -1, QQuickItem *parent = nullptr);
-  void paint(QPainter *painter) override;
 
-  [[nodiscard]] qreal worldScale() const;
-  [[nodiscard]] qreal cameraAngleX() const;
-  [[nodiscard]] qreal cameraAngleY() const;
-  [[nodiscard]] qreal cameraAngleZ() const;
-  [[nodiscard]] qreal cameraOffsetX() const;
-  [[nodiscard]] qreal cameraOffsetY() const;
-  [[nodiscard]] qreal cameraOffsetZ() const;
-  [[nodiscard]] qreal idealWorldScale() const;
-
-  [[nodiscard]] bool dirty() const;
-
-  [[nodiscard]] float eyeSeparation() const;
-  [[nodiscard]] bool anaglyphEnabled() const;
-  [[nodiscard]] bool invertEyePositions() const;
-
-  [[nodiscard]] bool orbitNavigation() const;
+  [[nodiscard]] QColor diffuseColor() const;
+  ;
   [[nodiscard]] bool interpolationEnabled() const;
+  [[nodiscard]] Widgets::Plot3DGeometry *geometry() const;
 
 public slots:
-  void setWorldScale(const qreal z);
-  void setCameraAngleX(const qreal angle);
-  void setCameraAngleY(const qreal angle);
-  void setCameraAngleZ(const qreal angle);
-  void setCameraOffsetX(const qreal offset);
-  void setCameraOffsetY(const qreal offset);
-  void setCameraOffsetZ(const qreal offset);
-  void setAnaglyphEnabled(const bool enabled);
-  void setOrbitNavigation(const bool enabled);
-  void setEyeSeparation(const float separation);
-  void setInvertEyePositions(const bool enabled);
   void setInterpolationEnabled(const bool enabled);
+  void setGeometry(Widgets::Plot3DGeometry *geometry);
 
 private slots:
   void updateData();
   void onThemeChanged();
 
 private:
-  void markDirty();
-
-  void drawData();
-  void drawGrid();
-  void drawBackground();
-  void drawCameraIndicator();
-
-private:
-  int gridStep() const;
-  QVector<QPointF> screenProjection(const QVector<QVector3D> &points,
-                                    const QMatrix4x4 &matrix);
-  void drawLine3D(QPainter &painter, const QMatrix4x4 &matrix,
-                  const QVector3D &p1, const QVector3D &p2, QColor color,
-                  float lineWidth, Qt::PenStyle style);
-
-  QPixmap renderGrid(const QMatrix4x4 &matrix);
-  QPixmap renderCameraIndicator(const QMatrix4x4 &matrix);
-  QPixmap renderData(const QMatrix4x4 &matrix, const PlotData3D &data);
-  QPair<QMatrix4x4, QMatrix4x4> eyeTransformations(const QMatrix4x4 &matrix);
-
-protected:
-  void wheelEvent(QWheelEvent *event) override;
-  void mouseMoveEvent(QMouseEvent *event) override;
-  void mousePressEvent(QMouseEvent *event) override;
-  void mouseReleaseEvent(QMouseEvent *event) override;
-
-private:
   int m_index;
-
-  qreal m_minX;
-  qreal m_maxX;
-  qreal m_minY;
-  qreal m_maxY;
-  qreal m_minZ;
-  qreal m_maxZ;
-
-  qreal m_worldScale;
-  qreal m_cameraAngleX;
-  qreal m_cameraAngleY;
-  qreal m_cameraAngleZ;
-  qreal m_cameraOffsetX;
-  qreal m_cameraOffsetY;
-  qreal m_cameraOffsetZ;
-
-  float m_eyeSeparation;
-
-  bool m_anaglyph;
-  bool m_interpolate;
-  bool m_orbitNavigation;
-  bool m_invertEyePositions;
-
-  bool m_dirtyData;
-  bool m_dirtyGrid;
-  bool m_dirtyBackground;
-  bool m_dirtyCameraIndicator;
-
-  QColor m_textColor;
-  QColor m_xAxisColor;
-  QColor m_yAxisColor;
-  QColor m_zAxisColor;
-  QColor m_axisTextColor;
-  QColor m_lineHeadColor;
-  QColor m_lineTailColor;
-  QColor m_gridMinorColor;
-  QColor m_gridMajorColor;
-  QColor m_innerBackgroundColor;
-  QColor m_outerBackgroundColor;
-
-  QPixmap m_plotPixmap[2];
-  QPixmap m_gridPixmap[2];
-  QPixmap m_backgroundPixmap[2];
-  QPixmap m_cameraIndicatorPixmap[2];
-
-  qreal m_orbitOffsetX;
-  qreal m_orbitOffsetY;
-  QPointF m_lastMousePos;
-
-  QVector3D m_minPoint;
-  QVector3D m_maxPoint;
+  QColor m_diffuseColor;
+  Plot3DGeometry *m_geometry;
+  bool m_interpolationEnabled;
 };
 } // namespace Widgets

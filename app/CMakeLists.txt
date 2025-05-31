@@ -301,6 +301,7 @@ if(USE_QT_COMMERCIAL)
     qml/Widgets/Dashboard/Plot3D.qml
     qml/Dialogs/MQTTConfiguration.qml
     qml/Dialogs/LicenseManagement.qml
+    qml/Widgets/Plot3DWidget.qml
     qml/MainWindow/Panes/SetupPanes/Drivers/CANBus.qml
     qml/MainWindow/Panes/SetupPanes/Drivers/Modbus.qml
   )

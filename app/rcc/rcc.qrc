@@ -363,5 +363,6 @@
         <file>themes/light.json</file>
         <file>logo/start@1x.png</file>
         <file>logo/start@2x.png</file>
+        <file>shaders/anaglyph.frag.qsb</file>
     </qresource>
 </RCC>

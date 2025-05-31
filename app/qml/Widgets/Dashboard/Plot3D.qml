@@ -23,6 +23,8 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 
+import QtQuick3D
+
 import SerialStudio
 
 import "../"
@@ -34,7 +36,7 @@ Item {
   // Widget data inputs
   //
   required property color color
-  required property Plot3DWidget model
+  required property Plot3DModel model
   required property MiniWindow windowRoot
 
   //
@@ -43,23 +45,10 @@ Item {
   readonly property bool hasToolbar: root.width >= toolbar.implicitWidth
 
   //
-  // Disable navigation
+  // Update plot geometry automatically
   //
-  Connections {
-    target: windowRoot
-
-    function onFocusedChanged() {
-      if (model)
-        model.enabled = windowRoot.focused
-    }
-  }
-
   onModelChanged: {
-    if (model) {
-      model.visible = true
-      model.parent = container
-      model.anchors.fill = container
-    }
+    root.model.geometry = customGeometry
   }
 
   //
@@ -67,70 +56,17 @@ Item {
   //
   Shortcut {
     enabled: windowRoot.focused
-    onActivated: model.worldScale += 0.1
     sequences: [StandardKey.ZoomIn]
+    onActivated: {
+      if (view.cameraDistance > 10)
+        view.cameraDistance -= 50
+    }
   } Shortcut {
     enabled: windowRoot.focused
-    onActivated: model.worldScale -= 0.1
     sequences: [StandardKey.ZoomOut]
-  }
-
-  //
-  // Animations
-  //
-  NumberAnimation {
-    id: zoomAnimation
-    target: model
-    property: "worldScale"
-    duration: 400
-  } NumberAnimation {
-    id: angleXAnimation
-    target: model
-    property: "cameraAngleX"
-    duration: 400
-  } NumberAnimation {
-    id: angleYAnimation
-    target: model
-    property: "cameraAngleY"
-    duration: 400
-  } NumberAnimation {
-    id: angleZAnimation
-    target: model
-    property: "cameraAngleZ"
-    duration: 400
-  } NumberAnimation {
-    id: offsetXAnimation
-    target: model
-    property: "cameraOffsetX"
-    duration: 400
-  } NumberAnimation {
-    id: offsetYAnimation
-    target: model
-    property: "cameraOffsetY"
-    duration: 400
-  }
-
-  //
-  // Moves the model to the given position & setup, with animations
-  //
-  function animateToView(angleX, angleY, angleZ, offsetX, offsetY) {
-    zoomAnimation.to = model.idealWorldScale
-    zoomAnimation.start()
-
-    angleXAnimation.to = angleX
-    angleXAnimation.start()
-
-    angleYAnimation.to = angleY
-    angleYAnimation.start()
-
-    angleZAnimation.to = angleZ
-    angleZAnimation.start()
-
-    offsetXAnimation.to = offsetX
-    offsetXAnimation.start()
-
-    offsetYAnimation.to = offsetY
-    offsetYAnimation.start()
+    onActivated: {
+      view.cameraDistance += 50
+    }
   }
 
   //
@@ -163,6 +99,17 @@ Item {
                      "qrc:/rcc/icons/dashboard-buttons/interpolate-off.svg"
     }
 
+    ToolButton {
+      width: 24
+      height: 24
+      icon.width: 18
+      icon.height: 18
+      checked: view.showAxes
+      icon.color: "transparent"
+      onClicked: view.showAxes = !view.showAxes
+      icon.source: "qrc:/rcc/icons/dashboard-buttons/abscissa.svg"
+    }
+
     Rectangle {
       implicitWidth: 1
       implicitHeight: 24
@@ -175,8 +122,8 @@ Item {
       icon.width: 18
       icon.height: 18
       icon.color: "transparent"
-      checked: model.orbitNavigation
-      onClicked: model.orbitNavigation = true
+      checked: view.orbbitNavigation
+      onClicked: view.orbbitNavigation = true
       icon.source: "qrc:/rcc/icons/dashboard-buttons/orbit.svg"
     }
 
@@ -186,8 +133,8 @@ Item {
       icon.width: 18
       icon.height: 18
       icon.color: "transparent"
-      checked: !model.orbitNavigation
-      onClicked: model.orbitNavigation = false
+      checked: !view.orbbitNavigation
+      onClicked: view.orbbitNavigation = false
       icon.source: "qrc:/rcc/icons/dashboard-buttons/pan.svg"
     }
 
@@ -203,7 +150,7 @@ Item {
       icon.width: 18
       icon.height: 18
       icon.color: "transparent"
-      onClicked: animateToView(300, 0, 225, 0, 0)
+      onClicked: view.animateToView(225, 60)
       icon.source: "qrc:/rcc/icons/dashboard-buttons/orthogonal_view.svg"
     }
 
@@ -213,7 +160,7 @@ Item {
       icon.width: 18
       icon.height: 18
       icon.color: "transparent"
-      onClicked: animateToView(360, 0, 360, 0, 0)
+      onClicked: view.animateToView(0, 0)
       icon.source: "qrc:/rcc/icons/dashboard-buttons/top_view.svg"
     }
 
@@ -223,7 +170,7 @@ Item {
       icon.width: 18
       icon.height: 18
       icon.color: "transparent"
-      onClicked: animateToView(270, 0, 270, 0, 0)
+      onClicked: view.animateToView(270, 80)
       icon.source: "qrc:/rcc/icons/dashboard-buttons/left_view.svg"
     }
 
@@ -233,7 +180,7 @@ Item {
       icon.width: 18
       icon.height: 18
       icon.color: "transparent"
-      onClicked: animateToView(270, 0, 180, 0, 0)
+      onClicked: view.animateToView(180, 80)
       icon.source: "qrc:/rcc/icons/dashboard-buttons/front_view.svg"
     }
 
@@ -249,39 +196,24 @@ Item {
       icon.width: 18
       icon.height: 18
       icon.color: "transparent"
-      checked: model.anaglyphEnabled
-      onClicked: model.anaglyphEnabled = !model.anaglyphEnabled
+      checked: view.anaglyphEnabled
+      onClicked: view.anaglyphEnabled = !view.anaglyphEnabled
       icon.source: "qrc:/rcc/icons/dashboard-buttons/anaglyph.svg"
     }
 
-    ToolButton {
-      width: 24
-      height: 24
-      icon.width: 18
-      icon.height: 18
-      icon.color: "transparent"
-      enabled: model.anaglyphEnabled
-      checked: model.invertEyePositions
-      opacity: model.anaglyphEnabled ? 1 : 0
-      icon.source: "qrc:/rcc/icons/dashboard-buttons/invert.svg"
-      onClicked: model.invertEyePositions = !model.invertEyePositions
-    }
-
     Slider {
-      to: 100
-      from: 30
+      from: 0
+      to: 5000
       stepSize: 1
       Layout.fillWidth: true
       Layout.maximumWidth: 128
-      enabled: model.anaglyphEnabled
-      value: model.eyeSeparation * 1e3
-      opacity: model.anaglyphEnabled ? 1 : 0
+      enabled: view.anaglyphEnabled
+      value: view.eyeSeparation * 1e3
+      opacity: view.anaglyphEnabled ? 1 : 0
       onValueChanged: {
-        if (model) {
-          var separation = value / 1e3
-          if (model.eyeSeparation !== separation)
-            model.eyeSeparation = separation
-        }
+        var separation = value / 1e3
+        if (view.eyeSeparation !== separation)
+          view.eyeSeparation = separation
       }
     }
 
@@ -291,17 +223,26 @@ Item {
   }
 
   //
-  // Widget view
+  // 3D Plot view
   //
-  Item {
-    clip: true
+  Plot3DWidget {
+    id: view
     anchors.fill: parent
     anchors.topMargin: root.hasToolbar ? 48 : 0
+    backgroundColor: Cpp_ThemeManager.colors["widget_window"]
 
-    Item {
-      id: container
-      anchors.margins: -1
-      anchors.fill: parent
+    geometry: Plot3DGeometry {
+      id: customGeometry
+      onBoundsChanged: {
+        view.updateGeometryCenter()
+      }
+    }
+
+    materials: DefaultMaterial {
+      lineWidth: 2.0
+      pointSize: 2.0
+      diffuseColor: model.diffuseColor
+      lighting: DefaultMaterial.NoLighting
     }
   }
 }
