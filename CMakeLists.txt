@@ -83,11 +83,11 @@ add_definitions(-DPROJECT_DISPNAME="${PROJECT_DISPNAME}")
 #-------------------------------------------------------------------------------
 
 if(BUILD_GPL3)
-   if(BUILD_COMMERCIAL)
-      message(FATAL_ERROR
-         "You cannot enable commercial features (BUILD_COMMERCIAL=ON) when BUILD_GPL3=ON.\n"
-         "Set -DBUILD_GPL3=OFF to build with commercial modules.")
-   endif()
+##   if(BUILD_COMMERCIAL)
+##      message(FATAL_ERROR
+##         "You cannot enable commercial features (BUILD_COMMERCIAL=ON) when BUILD_GPL3=ON.\n"
+##         "Set -DBUILD_GPL3=OFF to build with commercial modules.")
+##   endif()
 
    set(BUILD_COMMERCIAL OFF CACHE BOOL "Commercial features disabled due to GPLv3 build mode" FORCE)
    message(STATUS "BUILD_GPL3=ON — enforcing BUILD_COMMERCIAL=OFF for license compliance")
