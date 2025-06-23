@@ -26,6 +26,7 @@
 name: Deploy
 
 on:
+  workflow_dispatch:
   push:               # Run on push
     paths-ignore:     # File patterns to ignore
     - '**.md'         # Ignore changes to *.md files
